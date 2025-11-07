@@ -21,7 +21,7 @@ type BlockDevice struct {
 	IsROTA bool   `json:"rota"`   // "rotational" - true for HDD, false for SSD/NVMe
 }
 
-func discoverDevices() ([]BlockDevice, error) {
+func DiscoverDevices() ([]BlockDevice, error) {
 	// -J ensures the output is JSON
 	// -o specifies the columns we want
 	cmd := exec.Command("lsblk", "-J", "-o", "NAME,MODEL,SERIAL,TYPE,SIZE,ROTA")
