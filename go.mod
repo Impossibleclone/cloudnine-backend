@@ -1,4 +1,4 @@
-module sih2025
+module cloudnine-sih2025
 
 go 1.24.6
 

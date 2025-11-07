@@ -3,7 +3,6 @@ package wipe
 import (
 	"fmt"
 	"os/exec"
-	// "sih2025/pkg/log"
 	"syscall"
 )
 

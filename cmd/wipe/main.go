@@ -2,15 +2,14 @@ package main
 
 import (
     "encoding/json"
-    // "flag"
     "fmt"
     "os"
 	"runtime"
-    // "path/filepath"
     "time"
 
-    "sih2025/internals/wipe"
-    "sih2025/pkg/log"
+    "cloudnine-sih2025/internals/cert"
+    "cloudnine-sih2025/internals/wipe"
+    "cloudnine-sih2025/pkg/log"
     "github.com/jung-kurt/gofpdf"
 )
 
@@ -27,7 +26,7 @@ func main() {
     log.Info("Platform: %s, Passes: %d", runtime.GOOS, passes)
 
     startTime := time.Now()
-    err := wipe.choosemethod(device)
+    err := wipe.Wipe(device)
     if err != nil {
         log.Error("Wipe failed: %v", err)
         os.Exit(1)
@@ -35,7 +34,7 @@ func main() {
     duration := time.Since(startTime)
     log.Info("Wipe completed successfully in %v", duration)
 
-    cert := wipe.GenerateCertificate(device, passes, duration, runtime.GOOS)
+    cert := cert.GenerateCertificate(device, passes, duration, runtime.GOOS)
     if err := saveCertificate(cert, output); err != nil {
         log.Error("Failed to save certificate: %v", err)
         os.Exit(1)
@@ -45,7 +44,7 @@ func main() {
     log.Info("Wipe process finished.")
 }
 
-func saveCertificate(cert *wipe.WipeCertificate, output string) error {
+func saveCertificate(cert *cert.Certificate, output string) error {
     jsonData, err := json.MarshalIndent(cert, "", "  ")
     if err != nil {
         return err
