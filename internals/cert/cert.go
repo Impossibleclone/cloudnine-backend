@@ -10,10 +10,9 @@ import (
     "fmt"
     "io/ioutil"
     "os"
-    "path/filepath"
     "strings"
     "time"
-
+	"github.com/jung-kurt/gofpdf"
     "cloudnine-sih2025/pkg/log"
 )
 
@@ -30,15 +29,14 @@ type Certificate struct {
     Standards  []string  `json:"standards"`
 }
 
-func GenerateCertificate(device string, passes int, duration time.Duration, platform string) *Certificate {
+func GenerateCertificate(device string, duration time.Duration, platform string) *Certificate {
     cert := &Certificate{
         Device:    device,
-        Passes:    passes,
         StartTime: time.Now().Add(-duration),
         EndTime:   time.Now(),
         Duration:  duration.String(),
         Platform:  platform,
-        Method:    "Multi-pass overwrite (NIST 800-88 compliant)",
+        Method:    "(NIST 800-88 compliant)",
         Standards: []string{"NIST SP 800-88"},
     }
 
@@ -77,26 +75,32 @@ func LoadCertificate(path string) (*Certificate, error) {
     return cert, nil
 }
 
-func SaveCertificate(path string, cert *Certificate) error {
-    data, err := json.Marshal(cert)
-    if err != nil {
-        return err
-    }
+// saveCertificate saves the certificate to a PDF and JSON file.
+func SaveCertificate(cert *Certificate, output string) error {
+	jsonData, err := json.MarshalIndent(cert, "", "  ")
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(output+".json", jsonData, 0644); err != nil {
+		return err
+	}
 
-    err = os.MkdirAll(filepath.Dir(path), 0755)
-    if err != nil {
-        return err
-    }
-
-    return ioutil.WriteFile(path, data, 0644)
+	pdf := gofpdf.New("P", "mm", "A4", "")
+	pdf.AddPage()
+	pdf.SetFont("Arial", "B", 16)
+	pdf.Cell(40, 10, "Secure Wipe Certificate")
+	pdf.Ln(10)
+	pdf.SetFont("Arial", "", 12)
+	pdf.Cell(40, 10, fmt.Sprintf("Device: %s", cert.Device))
+	pdf.Ln(10)
+	pdf.Cell(40, 10, fmt.Sprintf("Duration: %s", cert.Duration))
+	pdf.Ln(10)
+	pdf.Cell(40, 10, fmt.Sprintf("Platform: %s", cert.Platform))
+	return pdf.OutputFileAndClose(output + ".pdf")
 }
 
 func (c *Certificate) GetDevice() string {
     return c.Device
-}
-
-func (c *Certificate) GetPasses() int {
-    return c.Passes
 }
 
 func (c *Certificate) GetStartTime() time.Time {
@@ -132,6 +136,6 @@ func (c *Certificate) GetStandards() []string {
 }
 
 func (c *Certificate) String() string {
-    return fmt.Sprintf("Device: %s\nPasses: %d\nStart Time: %s\nEnd Time: %s\nDuration: %s\nPlatform: %s\nMethod: %s\nSignature: %s\nPublic Key: %s\nStandards: %s\n",
-        c.Device, c.Passes, c.StartTime.Format(time.RFC3339), c.EndTime.Format(time.RFC3339), c.Duration, c.Platform, c.Method, c.Signature, c.PublicKey, strings.Join(c.Standards, ", "))
+    return fmt.Sprintf("Device: %s\nStart Time: %s\nEnd Time: %s\nDuration: %s\nPlatform: %s\nMethod: %s\nSignature: %s\nPublic Key: %s\nStandards: %s\n",
+        c.Device, c.StartTime.Format(time.RFC3339), c.EndTime.Format(time.RFC3339), c.Duration, c.Platform, c.Method, c.Signature, c.PublicKey, strings.Join(c.Standards, ", "))
 }

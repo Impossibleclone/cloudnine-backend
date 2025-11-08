@@ -12,7 +12,6 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/jung-kurt/gofpdf"
 )
 
 var (
@@ -25,14 +24,11 @@ var (
 
 func main() {
 
-	// --- 1. Define command-line flags ---
+	// -l argument to list all available devices
 	flag.BoolVar(&listAll, "l", false, "List all discoverable devices and exit")
 	flag.StringVar(&output, "output", "wipe_certificate", "Base name for output certificate files (e.g., 'wipe_certificate')")
-
-	// Parse all defined flags (e.g., -l, -output)
 	flag.Parse()
 
-	// --- 2. Handle the -l flag ---
 	// If -l was used, list devices and exit immediately.
 	if listAll {
 		devices, err := scanner.DiscoverDevices()
@@ -47,7 +43,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	// --- 3. Get the device (the positional argument) ---
+	// Get the device (the positional argument) ---
 	// flag.Args() returns any arguments that *weren't* flags.
 	args := flag.Args()
 	if len(args) == 0 {
@@ -66,7 +62,7 @@ func main() {
 	// We have exactly one device argument. Set the global 'device' variable.
 	device = args[0]
 
-	// --- 4. Run the wipe process (rest of your original code) ---
+	// Run the wipe process (rest of your original code) ---
 	log.Init()
 	log.Info("Starting secure wipe process for device: %s", device)
 	log.Info("Platform: %s, Passes: %d", runtime.GOOS, passes)
@@ -83,8 +79,8 @@ func main() {
 	log.Info("Wipe completed successfully in %v", duration)
 
 	// Generate and save the certificate
-	certData := cert.GenerateCertificate(device, passes, duration, runtime.GOOS)
-	if err := saveCertificate(certData, output); err != nil {
+	certData := cert.GenerateCertificate(device, duration, runtime.GOOS)
+	if err := cert.SaveCertificate(certData, output); err != nil {
 		log.Error("Failed to save certificate: %v", err)
 		os.Exit(1)
 	}
@@ -93,25 +89,3 @@ func main() {
 	log.Info("Wipe process finished.")
 }
 
-func saveCertificate(cert *cert.Certificate, output string) error {
-	jsonData, err := json.MarshalIndent(cert, "", "  ")
-	if err != nil {
-		return err
-	}
-	if err := os.WriteFile(output+".json", jsonData, 0644); err != nil {
-		return err
-	}
-
-	pdf := gofpdf.New("P", "mm", "A4", "")
-	pdf.AddPage()
-	pdf.SetFont("Arial", "B", 16)
-	pdf.Cell(40, 10, "Secure Wipe Certificate")
-	pdf.Ln(10)
-	pdf.SetFont("Arial", "", 12)
-	pdf.Cell(40, 10, fmt.Sprintf("Device: %s", cert.Device))
-	pdf.Ln(10)
-	pdf.Cell(40, 10, fmt.Sprintf("Duration: %s", cert.Duration))
-	pdf.Ln(10)
-	pdf.Cell(40, 10, fmt.Sprintf("Platform: %s", cert.Platform))
-	return pdf.OutputFileAndClose(output + ".pdf")
-}
